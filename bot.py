@@ -3,7 +3,7 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 import yt_dlp
 import os
 
-TOKEN = "8049358854:AAG9PfWtuNfXkLiEG_6Sqrmta9MCqvC3tOU"
+TOKEN = "ENTER YOUR BOT TOKEN"
 
 def start(update, context):
     update.message.reply_text(
