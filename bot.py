@@ -1,92 +1,110 @@
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackQueryHandler
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, CallbackContext, MessageHandler, Filters
 import yt_dlp
+import glob
 import os
 
-TOKEN = "ENTER YOUR BOT TOKEN"
+CHANNEL_MSG = "\n\n❤️ Please join our channel: @lifeonbots"
 
+# =========================
+# START COMMAND
+# =========================
 def start(update, context):
     update.message.reply_text(
-        "YouTube link bhejo 🔗\nPhir quality choose karo 🎥🎶"
+        "👋 Welcome! YouTube Video & Audio Downloader Bot.\n\n👇 Link bhejo...",
     )
 
-def ask_quality(update, context):
-    url = update.message.text.strip()
+# =========================
+# HANDLE YOUTUBE LINK
+# =========================
+def handle_message(update, context):
+    url = update.message.text
 
-    if "http" not in url:
-        update.message.reply_text("❌ Valid YouTube link bhejo.")
+    if "youtube.com" not in url and "youtu.be" not in url:
+        update.message.reply_text("❌ YouTube ka link bhejo!")
         return
 
-    context.user_data['url'] = url
+    context.user_data["url"] = url
 
     keyboard = [
-        [InlineKeyboardButton("144p", callback_data="144"),
-         InlineKeyboardButton("240p", callback_data="240")],
-        [InlineKeyboardButton("360p", callback_data="360"),
-         InlineKeyboardButton("480p", callback_data="480")],
-        [InlineKeyboardButton("720p HD", callback_data="720"),
-         InlineKeyboardButton("1080p Full HD", callback_data="1080")],
-        [InlineKeyboardButton("🎵 Audio MP3", callback_data="audio")]
+        [InlineKeyboardButton("🎧 Audio (MP3)", callback_data="audio")],
+        [InlineKeyboardButton("📹 144p", callback_data="144")],
+        [InlineKeyboardButton("📹 240p", callback_data="240")],
+        [InlineKeyboardButton("📹 360p", callback_data="360")],
+        [InlineKeyboardButton("📹 480p", callback_data="480")],
+        [InlineKeyboardButton("📹 720p", callback_data="720")],
     ]
 
+    reply_markup = InlineKeyboardMarkup(keyboard)
     update.message.reply_text(
-        "Quality choose karo 👇",
-        reply_markup=InlineKeyboardMarkup(keyboard)
+        "👇 Please select quality:" + CHANNEL_MSG,
+        reply_markup=reply_markup
     )
 
+# =========================
+# BUTTON HANDLER
+# =========================
 def button(update, context):
     query = update.callback_query
-    quality = query.data
+    query_data = query.data
     url = context.user_data.get("url")
 
     query.answer()
-    query.edit_message_text("⏳ Download ho raha hai...")
+    query.edit_message_text("⏳ Downloading... Please wait..." + CHANNEL_MSG)
 
-    if quality == "audio":
+    # DOWNLOAD OPTIONS
+    if query_data == "audio":
         ydl_opts = {
             "format": "bestaudio/best",
-            "outtmpl": "audio.%(ext)s",
-            "postprocessors": [
-                {
-                    "key": "FFmpegExtractAudio",
-                    "preferredcodec": "mp3",
-                    "preferredquality": "192",
-                }
-            ],
+            "outtmpl": "%(title)s.%(ext)s",
+            "postprocessors": [{
+                "key": "FFmpegExtractAudio",
+                "preferredcodec": "mp3",
+            }],
         }
-        file_path = "audio.mp3"
     else:
         ydl_opts = {
-            "format": f"bestvideo[height<={quality}]+bestaudio/best",
+            "format": f"bestvideo[height<={query_data}]+bestaudio/best",
             "merge_output_format": "mp4",
-            "outtmpl": "video.mp4",
+            "outtmpl": "%(title)s.%(ext)s",
         }
-        file_path = "video.mp4"
 
     try:
+        # DOWNLOAD
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
 
-        if quality == "audio":
-            query.message.reply_audio(open(file_path, "rb"))
+        # FIND NEWEST FILE
+        files = glob.glob("*.mp4") + glob.glob("*.mp3")
+        files.sort(key=os.path.getmtime)
+        file_path = files[-1]
+
+        # SEND FILE
+        if file_path.endswith(".mp3"):
+            query.message.reply_audio(audio=open(file_path, "rb"), caption=CHANNEL_MSG)
         else:
-            query.message.reply_video(open(file_path, "rb"))
+            query.message.reply_video(video=open(file_path, "rb"), caption=CHANNEL_MSG)
 
         os.remove(file_path)
 
-    except Exception as e:
-        query.message.reply_text("❌ Error! Link sahi hai ya video private to nahi?")
+    except:
+        query.message.reply_text("❌ Error! Link sahi hai ya video private to nahi?" + CHANNEL_MSG)
 
+
+# =========================
+# MAIN
+# =========================
 def main():
-    updater = Updater(TOKEN, use_context=True)
+    updater = Updater("YOUR_BOT_TOKEN_HERE", use_context=True)
     dp = updater.dispatcher
 
     dp.add_handler(CommandHandler("start", start))
-    dp.add_handler(MessageHandler(Filters.text & ~Filters.command, ask_quality))
+    dp.add_handler(MessageHandler(Filters.text, handle_message))
     dp.add_handler(CallbackQueryHandler(button))
 
     updater.start_polling()
     updater.idle()
+
 
 if __name__ == "__main__":
     main()
