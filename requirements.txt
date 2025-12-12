@@ -1,2 +1,4 @@
 python-telegram-bot==20.7
 pytube==15.0.0
+flask
+python-dotenv
