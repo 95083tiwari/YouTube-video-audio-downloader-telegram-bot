@@ -1,5 +1,5 @@
 # ========= BOT CONFIG (YAHI TOKEN DAALO) =========
-BOT_TOKEN = "8049358854:AAFmNKd6sbfjq7AQsZIa9OPPFksiOcc40qo"  # <-- Apna bot token yaha paste karo
+BOT_TOKEN = "ENTER BOT TOKEN HERE"  # <-- Apna bot token yaha paste karo
 CHANNEL_TEXT = "\n\n🔔 Join our Channel @lifeonbots"
 # ===============================================
 
